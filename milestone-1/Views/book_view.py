@@ -1,5 +1,6 @@
 from typing import List
 
+
 class BookView:
     """Handles the user interface interactions."""
 
@@ -20,7 +21,7 @@ class BookView:
 
     def show_books(self, books_summary: List[str]):
         """Displays a list of books from string summaries.
-        
+
         Args:
             books_summary: A list of formatted strings representing books.
         """

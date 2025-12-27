@@ -2,6 +2,7 @@ from typing import List
 from Models.book_model import Book
 from Views.book_view import BookView
 
+
 class BookController:
     """Controls the flow of the book application."""
 
@@ -30,11 +31,11 @@ class BookController:
         title, author = self.view.get_book_details()
         book = Book(title, author)
         self.books.append(book)
-        self.view.show_message(f"Book '{title}' added successfully!")
+        # Using to_dict() to show the added book data
+        book_data = book.to_dict()
+        self.view.show_message(f"Added: {book_data}")
 
     def _handle_list_books(self):
         """Handles the logic for listing all books."""
         book_strings = [str(book) for book in self.books]
         self.view.show_books(book_strings)
-
-
