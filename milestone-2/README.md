@@ -100,6 +100,27 @@ milestone-2/
 
 ---
 
+## Demo Output
+
+```
+✅ Successfully indexed 2 document(s).
+
+
+🤖 Model: gemma3:1b
+💡 Answer:
+Please provide me with the documents! I need the text of the documents to be able to tell you the main topic. 😊 
+
+To help me understand, please paste the documents here.
+
+
+❓ Question: what is the second name after ahmed
+💡 Answer: mostafa
+```
+
+**Note:** The `chat()` command talks directly to the LLM (no document context), while `query()` uses RAG to search the indexed documents and provide accurate answers.
+
+---
+
 ## Resources Used
 
 - [GeeksforGeeks - What is RAG?](https://www.geeksforgeeks.org/nlp/what-is-retrieval-augmented-generation-rag/)

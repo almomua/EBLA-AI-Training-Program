@@ -17,7 +17,7 @@ class RAGController:
             embed_model_name: HuggingFace model to use for embeddings.
         """
         # Initialize dependencies
-        config = LLMConfig()
+        config = LLMConfig(model_name=model_name, temperature=0.7)
         self.llm_service = LLMService(config)
         self.index_service = IndexService(data_dir, model_name, embed_model_name)
         self.view = ChatViewer()
