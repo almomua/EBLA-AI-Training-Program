@@ -1,61 +1,64 @@
-# Milestone 3 – Data Preparation & Indexing
+# Milestone 4 – Retrieval & LLM Integration
 
 ## Learning Objectives
-- Preprocess text data, create embeddings, and index documents.
-- Expose these operations via FastAPI endpoints.
+- Implement retrieval of relevant documents.
+- Integrate retrieval results with the local LLM to generate responses.
+- Expose functionality via FastAPI.
 
 ## Activities
-- Prepare dataset (text files, articles, or documents).
-- Generate embeddings using a vector store (ChromaDB).
-- Build a FastAPI service with endpoints:
-  - POST /index → preprocess and index documents.
-  - POST /search → accept a query, return relevant documents.
+- Add a retrieval pipeline that fetches documents based on a query.
+- Pass retrieved documents to LLM for response generation.
+- Extend FastAPI with:
+  - POST /ask → accept a query, retrieve documents, and generate an LLM response.
 
 ## Deliverables
-- [x] A FastAPI project exposing endpoints to index and manage documents.
-- [x] Documentation explaining how to call the endpoints and what they return.
+- [x] A FastAPI project with working endpoints for document retrieval and LLM integration.
+- [x] Example cURL or Postman requests demonstrating usage.
 
 ---
 
-## Discussion Summary: Data Preparation & Indexing
+## Discussion Summary: Retrieval & LLM Integration
 
-### 1. What is Document Indexing?
-Document indexing is the process of converting documents into searchable vectors (embeddings) stored in a vector database for efficient semantic search.
+### 1. What is RAG (Retrieval-Augmented Generation)?
+RAG combines document retrieval with LLM generation to produce accurate, context-aware responses.
 
 | Step | What Happens |
 |------|-------------|
-| **1. Load** | Read file content (PDF, TXT, etc.) |
-| **2. Split** | Break into smaller chunks (~1000 chars) |
-| **3. Embed** | Convert chunks to vectors using embedding model |
-| **4. Store** | Save vectors in ChromaDB for similarity search |
+| **1. Query** | User asks a question |
+| **2. Retrieve** | Search ChromaDB for relevant document chunks |
+| **3. Augment** | Build prompt with retrieved context |
+| **4. Generate** | LLM generates answer using context |
 
-### 2. LangChain
-LangChain is a framework for building applications with LLMs. In this milestone, we use it for:
-- **Document Loaders**: `PyPDFLoader`, `TextLoader` to read files
-- **Text Splitters**: `RecursiveCharacterTextSplitter` to chunk documents
-- **Embeddings**: `HuggingFaceEmbeddings` for vector conversion
-- **Vector Store**: `Chroma` for storing and searching vectors
+### 2. LLM Integration (Ollama)
+Ollama runs language models locally without API costs.
 
-### 3. ChromaDB
-ChromaDB is an open-source vector database that stores embeddings and enables similarity search.
-
-```python
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-
-embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-base-en-v1.5")
-vectorstore = Chroma.from_documents(chunks, embeddings, persist_directory="storage/chroma_db")
+```bash
+ollama pull gemma3:1b
+ollama serve
 ```
 
-### 4. FastAPI Endpoints
-The API accepts **two input methods** for indexing:
+```python
+from langchain_ollama import ChatOllama
 
-| Method | Content Type | Use Case |
-|--------|--------------|----------|
-| **File Upload** | `multipart/form-data` | Upload PDF, TXT files |
-| **Raw Text** | `multipart/form-data` | Send text content directly |
+llm = ChatOllama(model="gemma3:1b")
+response = llm.invoke(prompt)
+answer = response.content
+```
 
-Both methods use the same endpoint (`POST /index`) with optional parameters.
+### 3. Prompt Engineering
+The prompt template guides the LLM to use the retrieved context:
+
+```
+Use the following context to answer the question.
+If the answer is not in the context, say "I don't have enough information."
+
+Context:
+{retrieved_chunks}
+
+Question: {user_query}
+
+Answer:
+```
 
 ---
 
@@ -64,50 +67,27 @@ Both methods use the same endpoint (`POST /index`) with optional parameters.
 ### POST /index
 Index a document (file upload OR raw text).
 
-**File Upload:**
 ```bash
 curl -X POST http://localhost:8000/index \
   -F "file=@document.pdf"
 ```
 
-**Raw Text:**
-```bash
-curl -X POST http://localhost:8000/index \
-  -F "content=This is my document text" \
-  -F "source=my_notes.txt"
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Indexed document.pdf",
-  "chunks_indexed": 5
-}
-```
-
 ### POST /search
 Search indexed documents.
 
-**Request:**
 ```bash
 curl -X POST http://localhost:8000/search \
   -H "Content-Type: application/json" \
   -d '{"query": "What is RAG?", "top_k": 5}'
 ```
 
-**Response:**
-```json
-{
-  "query": "What is RAG?",
-  "results": [
-    {
-      "content": "RAG (Retrieval-Augmented Generation) combines...",
-      "source": "document.pdf",
-      "score": 0.85
-    }
-  ]
-}
+### POST /ask
+Ask a question and get an LLM-generated answer using RAG.
+
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is RAG?", "top_k": 3}'
 ```
 
 ---
@@ -115,24 +95,27 @@ curl -X POST http://localhost:8000/search \
 ## Project Structure (MVCS Pattern)
 
 ```
-milestone-3/
+milestone-4/
 ├── app.py                         # FastAPI entry point
 ├── Models/
 │   └── document_model.py          # Document dataclass
 ├── Schemas/
 │   └── api_schemas.py             # Pydantic request/response models
 ├── Controllers/
-│   ├── index_controller.py        # Indexing logic coordination
-│   └── retrieval_controller.py    # Search logic coordination
+│   ├── index_controller.py        # Indexing logic
+│   ├── retrieval_controller.py    # Search logic
+│   └── ask_controller.py          # RAG Q&A logic
 ├── Services/
-│   ├── index_service.py           # Document indexing (LangChain + ChromaDB)
-│   └── retrieval_service.py       # Document search (ChromaDB)
+│   ├── index_service.py           # Document indexing (ChromaDB)
+│   ├── retrieval_service.py       # Document search (ChromaDB)
+│   └── llm_service.py             # Ollama LLM integration
 ├── Routes/
-│   ├── index_routes.py            # POST /index endpoint
-│   └── retrieval_routes.py        # POST /search endpoint
+│   ├── index_routes.py            # POST /index
+│   ├── retrieval_routes.py        # POST /search
+│   └── ask_routes.py              # POST /ask
 ├── Utils/
-│   └── file_loader.py             # File loading utility (PDF, TXT)
-├── Views/                         # (empty - API responses handled by Schemas)
+│   └── file_loader.py             # File loading utility
+├── Views/
 ├── data/                          # Documents to index
 ├── storage/
 │   └── chroma_db/                 # ChromaDB vector store
@@ -144,29 +127,64 @@ milestone-3/
 | File | Description |
 |------|-------------|
 | `app.py` | FastAPI application entry point |
-| `Models/document_model.py` | `DocumentModel` dataclass for document representation |
-| `Schemas/api_schemas.py` | Pydantic models for API validation (`IndexResponse`, `SearchRequest`, etc.) |
-| `Controllers/index_controller.py` | Coordinates indexing operations |
-| `Controllers/retrieval_controller.py` | Coordinates search operations |
-| `Services/index_service.py` | Handles embedding generation and ChromaDB storage |
-| `Services/retrieval_service.py` | Handles similarity search in ChromaDB |
-| `Routes/index_routes.py` | Defines `POST /index` endpoint |
-| `Routes/retrieval_routes.py` | Defines `POST /search` endpoint |
-| `Utils/file_loader.py` | Loads PDF and TXT files using LangChain loaders |
+| `Models/document_model.py` | `DocumentModel` dataclass |
+| `Schemas/api_schemas.py` | Pydantic models (`AskRequest`, `AskResponse`, etc.) |
+| `Controllers/ask_controller.py` | Coordinates RAG Q&A (retrieve + generate) |
+| `Services/llm_service.py` | Ollama LLM interaction |
+| `Routes/ask_routes.py` | `POST /ask` endpoint |
+
+---
+
+## Demo Output
+
+Using `EBLA-AI-Training-Phase1.pdf` as the indexed document:
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What are the milestones in the training program?", "top_k": 3}'
+```
+
+**Response:**
+```json
+{
+  "query": "What are the milestones in the training program?",
+  "answer": "The training program consists of 6 milestones: Milestone 1 covers Python basics, Milestone 2 focuses on RAG and Core Technologies, Milestone 3 covers Data Preparation and Indexing, Milestone 4 handles Retrieval and LLM Integration, Milestone 5 adds Chat History and Prompt Engineering, and Milestone 6 is for Optimization and Finalization.",
+  "sources": ["EBLA-AI-Training-Phase1.pdf"]
+}
+```
+
+**Another example:**
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What should I learn in Milestone 3?", "top_k": 3}'
+```
+
+**Response:**
+```json
+{
+  "query": "What should I learn in Milestone 3?",
+  "answer": "In Milestone 3, you should learn to preprocess text data, create embeddings, and index documents. You will also expose these operations via FastAPI endpoints including POST /index to preprocess and index documents, and POST /search to accept a query and return relevant documents.",
+  "sources": ["EBLA-AI-Training-Phase1.pdf"]
+}
+```
 
 ---
 
 ## How to Run
 
+1. Start Ollama:
 ```bash
-cd milestone-3
-pip install -r requirements.txt
-python app.py
+ollama serve
 ```
 
-Or with uvicorn:
+2. Run the API:
 ```bash
-uvicorn app:app --reload
+cd milestone-4
+pip install -r requirements.txt
+python app.py
 ```
 
 API docs available at: `http://localhost:8000/docs`
@@ -176,16 +194,18 @@ API docs available at: `http://localhost:8000/docs`
 ## Resources Used
 
 - [LangChain Documentation](https://python.langchain.com/docs/)
+- [LangChain Ollama Integration](https://python.langchain.com/docs/integrations/llms/ollama/)
 - [ChromaDB Documentation](https://docs.trychroma.com/)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Ollama Documentation](https://ollama.ai/)
 
 ---
 
 ## Notes
 
-- Uses **LangChain** for document loading, splitting, and embedding.
-- Uses **ChromaDB** as the vector store for document indexing.
+- Uses **Ollama** (gemma3:1b) as the local LLM for response generation.
+- Uses **LangChain** for document loading, splitting, embedding, and LLM integration.
+- Uses **ChromaDB** as the vector store for document indexing and retrieval.
 - Uses **HuggingFace embeddings** (BAAI/bge-base-en-v1.5) for vectorization.
 - Uses **FastAPI** for REST API endpoints.
-- Accepts **both file uploads and raw text** on the same `/index` endpoint.
 - Follows the MVCS pattern and Google Python Style Guide.
