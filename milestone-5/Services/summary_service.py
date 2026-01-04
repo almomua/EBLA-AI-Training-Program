@@ -79,21 +79,7 @@ class SummaryService:
         Returns:
             The generated summary text.
         """
-        if existing_summary:
-            prompt = f"""Combine the existing summary with the new conversation into a concise summary.
-
-Existing summary:
-{existing_summary}
-
-New conversation:
-{new_conversation}
-
-Combined summary:"""
-        else:
-            prompt = f"""Summarize the following conversation concisely:
-
-{new_conversation}
-
-Summary:"""
-        
-        return self.llm_service.generate(prompt, [])
+        return self.llm_service.generate_summary(
+            conversation=new_conversation,
+            existing_summary=existing_summary if existing_summary else None
+        )

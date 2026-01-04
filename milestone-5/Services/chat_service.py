@@ -89,16 +89,25 @@ class ChatService:
         # Add summary if exists
         summary = self.summary_repo.get_by_session(session_id)
         if summary:
-            context.append(f"Previous conversation summary: {summary.summary_text}")
+            context.append(f"[CONVERSATION SUMMARY]\n{summary.summary_text}")
         
-        # Add active messages (recent history)
+        # Add active messages (recent history) - clearly labeled
         active_messages = self.message_repo.get_active(session_id)
-        for msg in active_messages[-settings.MAX_HISTORY_MESSAGES:]:
-            context.append(f"{msg.role}: {msg.content}")
+        recent_messages = active_messages[-settings.MAX_HISTORY_MESSAGES:]
         
-        # Add RAG results
+        if recent_messages:
+            history_text = "[CHAT HISTORY - Previous messages in this conversation]\n"
+            for msg in recent_messages:
+                role_label = "User" if msg.role == "user" else "Assistant"
+                history_text += f"{role_label}: {msg.content}\n"
+            context.append(history_text)
+        
+        # Add RAG results - clearly labeled
         rag_results = self.retrieval_service.search(query, settings.TOP_K)
-        for result in rag_results:
-            context.append(f"Document: {result['content']}")
+        if rag_results:
+            docs_text = "[COMPANY DOCUMENTS - Retrieved information]\n"
+            for result in rag_results:
+                docs_text += f"- {result['content']}\n"
+            context.append(docs_text)
         
         return context

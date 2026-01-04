@@ -1,4 +1,9 @@
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+import os
+env_path = f"e:/EBLA-Training-Program/milestone-5/.env"
+print(env_path)
+load_dotenv(env_path)
 
 
 class Settings(BaseSettings):
@@ -6,7 +11,6 @@ class Settings(BaseSettings):
     
     # App
     APP_NAME: str = None
-    APP_VERSION: str = None
     DEBUG: bool = None
     
     # Database (PostgreSQL)

@@ -2,7 +2,7 @@
 
 This module initializes the FastAPI app and registers all routes.
 """
-
+from Config import settings
 from fastapi import FastAPI
 from Database import init_db
 from Routes import (

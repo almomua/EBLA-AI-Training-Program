@@ -24,7 +24,7 @@
 ## ER Diagram
 
 <!-- TODO: Add your ERD image here -->
-![Chat History Database ERD](./erd-diagram.png)
+![Chat History Database ERD](./docs/Untitled%20diagram-2026-01-04-101131.png)
 
 ---
 
